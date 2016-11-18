@@ -6,10 +6,11 @@ from litex.soc.interconnect import wishbone
 
 
 class LM32(Module):
-    def __init__(self, platform, eba_reset):
+    def __init__(self, platform, eba_reset, deba_reset):
         self.ibus = i = wishbone.Interface()
         self.dbus = d = wishbone.Interface()
         self.interrupt = Signal(32)
+        self.ext_break = Signal()
 
         ###
 
@@ -17,11 +18,13 @@ class LM32(Module):
         d_adr_o = Signal(32)
         self.specials += Instance("lm32_cpu",
                                    p_eba_reset=Instance.PreformattedParam("32'h{:08x}".format(eba_reset)),
+                                   p_deba_reset=Instance.PreformattedParam("32'h{:08x}".format(deba_reset)),
 
                                    i_clk_i=ClockSignal(),
                                    i_rst_i=ResetSignal(),
 
                                    i_interrupt=self.interrupt,
+                                   i_ext_break=self.ext_break,
 
                                    o_I_ADR_O=i_adr_o,
                                    o_I_DAT_O=i.dat_w,

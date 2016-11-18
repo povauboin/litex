@@ -103,7 +103,7 @@
 //
 
 // Globally enable debugging
-//`define CFG_DEBUG_ENABLED
+`define CFG_DEBUG_ENABLED
 
 // Enable the hardware JTAG debugging interface.
 // Note: to use this, there must be a special JTAG module for your
@@ -120,19 +120,19 @@
 //`define CFG_HW_DEBUG_ENABLED
 
 // Number of hardware watchpoints, max. 4
-//`define CFG_WATCHPOINTS 32'h4
+`define CFG_WATCHPOINTS 32'h4
 
 // Enable hardware breakpoints
-//`define CFG_ROM_DEBUG_ENABLED
+`define CFG_ROM_DEBUG_ENABLED
 
 // Number of hardware breakpoints, max. 4
-//`define CFG_BREAKPOINTS 32'h4
+`define CFG_BREAKPOINTS 32'h4
 
 // Put the processor into debug mode by an external signal. That is,
 // raise a breakpoint exception. This is useful if you have a debug
 // monitor and a serial line and you want to trap into the monitor on a
 // BREAK symbol on the serial line.
-//`define CFG_EXTERNAL_BREAK_ENABLED
+`define CFG_EXTERNAL_BREAK_ENABLED
 
 
 //

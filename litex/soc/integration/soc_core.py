@@ -36,6 +36,7 @@ class SoCCore(Module):
     }
     def __init__(self, platform, clk_freq,
                 cpu_type="lm32", cpu_reset_address=0x00000000,
+                cpu_debug_address=0x10000000,
                 integrated_rom_size=0,
                 integrated_sram_size=4096,
                 integrated_main_ram_size=0,
@@ -51,6 +52,7 @@ class SoCCore(Module):
         if integrated_rom_size:
             cpu_reset_address = 0
         self.cpu_reset_address = cpu_reset_address
+        self.cpu_debug_address = cpu_debug_address
 
         self.integrated_rom_size = integrated_rom_size
         self.integrated_sram_size = integrated_sram_size
@@ -73,7 +75,7 @@ class SoCCore(Module):
 
         if cpu_type is not None:
             if cpu_type == "lm32":
-                self.add_cpu_or_bridge(lm32.LM32(platform, self.cpu_reset_address))
+                self.add_cpu_or_bridge(lm32.LM32(platform, self.cpu_reset_address, self.cpu_debug_address))
             elif cpu_type == "or1k":
                 self.add_cpu_or_bridge(mor1kx.MOR1KX(platform, self.cpu_reset_address))
             elif cpu_type == "riscv32":

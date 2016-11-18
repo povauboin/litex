@@ -35,7 +35,13 @@ _io = [
     ("serial", 0,
         Subsignal("tx", Pins("D10")),
         Subsignal("rx", Pins("A9")),
-        IOStandard("LVCMOS33")),
+        IOStandard("LVCMOS33")
+    ),
+    ("serial", 1,
+        Subsignal("tx", Pins("D4")),
+        Subsignal("rx", Pins("E2")),
+        IOStandard("LVCMOS33")
+    ),
 
     ("spiflash", 0,  # clock needs to be accessed through STARTUPE2
         Subsignal("cs_n", Pins("L13")),
@@ -89,8 +95,24 @@ _io = [
         Subsignal("crs", Pins("G14")),
         IOStandard("LVCMOS33")
     ),
-]
 
+    ("JA", 0,
+        Pins("G13 B11 A11 D12 D13 B18 A18 K16"),
+        IOStandard("LVCMOS33")
+    ),
+    ("JB", 0,
+        Pins("E15 E16 D15 C15 J17 J18 K15 J15"),
+        IOStandard("LVCMOS33")
+    ),
+    ("JC", 0,
+        Pins("U12 V12 V10 V11 U14 V14 T13 U13"),
+        IOStandard("LVCMOS33")
+    ),
+    ("JD", 0,
+        Pins("D4 D3 F4 F3 E2 D2 H2 G2"),
+        IOStandard("LVCMOS33")
+    ),
+]
 
 class Platform(XilinxPlatform):
     default_clk_name = "clk100"

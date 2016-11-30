@@ -48,6 +48,13 @@ _io = [
         Subsignal("dq", Pins("K17", "K18", "L14", "M14")),
         IOStandard("LVCMOS33")
     ),
+    ("spi", 0,
+        Subsignal("cs_n", Pins("G13")),
+        Subsignal("mosi", Pins("B11")),
+        Subsignal("miso", Pins("A11")),
+        Subsignal("clk", Pins("D12")),
+        IOStandard("LVTTL"),
+    ),
 
     ("eth_ref_clk", 0, Pins("G18"), IOStandard("LVCMOS33")),
 

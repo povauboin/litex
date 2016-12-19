@@ -17,7 +17,8 @@
 #include <linux/if.h>
 #include <linux/if_tun.h>
 
-#include <SDL/SDL.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
 
 /* ios */
 
@@ -75,8 +76,14 @@ struct sim {
 #endif
 };
 
+struct sw {
+	SDL_Rect box;
+	unsigned int state;
+	unsigned int mask;
+};
+
 /* Serial functions */
-#ifndef WITH_SERIAL_PTY
+#if defined(WITH_SERIAL) && !defined(WITH_SERIAL_PTY)
 struct termios orig_termios;
 
 void reset_terminal_mode(void)
@@ -267,7 +274,7 @@ int vga_close(struct sim *s) {
 #endif
 
 
-#ifndef WITH_SERIAL_PTY
+#if defined(WITH_SERIAL) && !defined(WITH_SERIAL_PTY)
 int console_service(struct sim *s)
 {
 	/* fpga --> console */
@@ -295,7 +302,7 @@ int console_service(struct sim *s)
 	}
 	return 0;
 }
-#else
+#elif defined(WITH_SERIAL)
 void console_init(struct sim *s)
 {
 	FILE *f;
@@ -305,14 +312,31 @@ void console_init(struct sim *s)
 	return;
 }
 
-void console_open(struct sim *s)
+int console_open(struct sim *s)
 {
-	s->serial_fd = open(s->serial_dev, O_RDWR);
-	if(s->serial_fd < 0) {
-		fprintf(stderr, " Could not open dev %s\n", s->serial_dev);
-		return;
+	int fdm;
+	int rc;
+
+	fdm = posix_openpt(O_RDWR);
+	s->serial_fd = fdm;
+	if (fdm < 0) {
+		fprintf(stderr, "Error %d on posix_openpt()\n", errno);
+		return 1;
 	}
-	return;
+
+	rc = grantpt(fdm);
+	if (rc != 0) {
+		fprintf(stderr, "Error %d on grantpt()\n", errno);
+		return 1;
+	}
+
+	rc = unlockpt(fdm);
+	if (rc != 0) {
+		fprintf(stderr, "Error %d on unlockpt()\n", errno);
+		return 1;
+	}
+
+	printf("The slave side is named : %s\n", ptsname(fdm));
 }
 
 int console_close(struct sim *s)
@@ -421,11 +445,57 @@ void sim_init(struct sim *s)
 	s->start = clock();
 }
 
+/* Swap int8 bit order */
+unsigned char swap(unsigned char b) {
+   b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
+   b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
+   b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
+   return b;
+}
+
 int main(int argc, char **argv, char **env)
 {
 	float speed;
 
-#ifndef WITH_SERIAL_PTY
+	SDL_Window* window = NULL;
+	SDL_Renderer* renderer = NULL;
+	SDL_Texture* img_board = NULL;
+	SDL_Texture* img_digits = NULL;
+	SDL_Texture* img_sw0 = NULL;
+	SDL_Texture* img_sw1 = NULL;
+	SDL_Event event;
+	SDL_Rect rect;
+	struct sw sws[8] = {
+		{.box = {.x = 180, .y = 242, .w = 20, .h = 37}, .state = 0, .mask = 0x80},
+		{.box = {.x = 200, .y = 242, .w = 20, .h = 37}, .state = 0, .mask = 0x40},
+		{.box = {.x = 221, .y = 242, .w = 20, .h = 37}, .state = 0, .mask = 0x20},
+		{.box = {.x = 242, .y = 242, .w = 20, .h = 37}, .state = 0, .mask = 0x10},
+		{.box = {.x = 263, .y = 242, .w = 20, .h = 37}, .state = 0, .mask = 0x8},
+		{.box = {.x = 284, .y = 242, .w = 20, .h = 37}, .state = 0, .mask = 0x4},
+		{.box = {.x = 305, .y = 242, .w = 20, .h = 37}, .state = 0, .mask = 0x2},
+		{.box = {.x = 326, .y = 242, .w = 20, .h = 37}, .state = 0, .mask = 0x1}
+	};
+	SDL_Rect segs[4] = {
+		{.x = 216, .y = 193, .w = 32, .h = 42},
+		{.x = 248, .y = 193, .w = 32, .h = 42},
+		{.x = 280, .y = 193, .w = 32, .h = 42},
+		{.x = 312, .y = 193, .w = 32, .h = 42}
+	};
+	SDL_Init( SDL_INIT_EVERYTHING );
+	window = SDL_CreateWindow("Spartan3",
+                          SDL_WINDOWPOS_UNDEFINED,
+                          SDL_WINDOWPOS_UNDEFINED,
+                          600, 426,
+                          0);
+	renderer = SDL_CreateRenderer(window, -1, 0);
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
+	SDL_RenderSetLogicalSize(renderer, 400, 284);
+	img_board = IMG_LoadTexture(renderer, "../spartan3.png" );
+	img_digits = IMG_LoadTexture(renderer, "../spartan3_digits.png" );
+	img_sw0 = IMG_LoadTexture(renderer, "../spartan3_sw0.png" );
+	img_sw1 = IMG_LoadTexture(renderer, "../spartan3_sw1.png" );
+
+#if defined(WITH_SERIAL) && !defined(WITH_SERIAL_PTY)
 	set_conio_terminal_mode();
 #endif
 
@@ -441,7 +511,7 @@ int main(int argc, char **argv, char **env)
 	sim_init(&s);
 
 #ifdef WITH_SERIAL_PTY
-	console_init(&s);
+	// console_init(&s);
 	console_open(&s);
 #endif
 
@@ -468,6 +538,38 @@ int main(int argc, char **argv, char **env)
 #ifdef WITH_VGA
 			vga_service(&s);
 #endif
+			if(s.tick%100000 == 0) {
+				SDL_RenderClear(renderer);
+				SDL_RenderCopy(renderer, img_board, NULL, NULL);
+				while( SDL_PollEvent( &event ) ) {
+					if( event.type == SDL_QUIT ) {
+						s.run = false;
+						break;
+					}
+					if( event.type == SDL_MOUSEBUTTONDOWN ) {
+						if( event.button.button == SDL_BUTTON_LEFT ) {
+							for	(int i=0; i<8; i++) {
+								if( ( event.motion.x > sws[i].box.x ) && 
+									( event.motion.x < sws[i].box.x + sws[i].box.w ) &&
+									( event.motion.y > sws[i].box.y ) &&
+									( event.motion.y < sws[i].box.y + sws[i].box.h ) ) {
+										sws[i].state = !sws[i].state;
+										SW = sws[i].state ? SW | sws[i].mask : SW & ~sws[i].mask;
+								}
+							}
+						}
+					}
+				}
+				for	(int i=0; i<8; i++) {
+					SDL_RenderCopy(renderer, sws[i].state ? img_sw1 : img_sw0, NULL, &sws[i].box);
+				}
+				rect.x = ((swap(~SEGMENT) >> 1) & 0xf) * segs[0].w;
+				rect.y = ((swap(~SEGMENT) >> 5) & 0xf) * segs[0].h;
+				rect.w = segs[0].w;
+				rect.h = segs[0].h;
+				SDL_RenderCopy(renderer, img_digits, &rect, &segs[3]); // XXX
+				SDL_RenderPresent( renderer );
+			}
 		}
 	}
 	s.end = clock();
@@ -487,6 +589,8 @@ int main(int argc, char **argv, char **env)
 #ifdef WITH_VGA
 	vga_close(&s);
 #endif
+
+	SDL_Quit();
 
 	exit(0);
 }

@@ -7,9 +7,9 @@ def get_var_name(frame):
     code = frame.f_code
     call_index = frame.f_lasti
     call_opc = opname[code.co_code[call_index]]
-    if call_opc != "CALL_FUNCTION" and call_opc != "CALL_FUNCTION_VAR":
+    if call_opc != "CALL_FUNCTION" and call_opc != "CALL_FUNCTION_KW":
         return None
-    index = call_index+3
+    index = call_index+2
     while True:
         opc = opname[code.co_code[index]]
         if opc == "STORE_NAME" or opc == "STORE_ATTR":
@@ -22,11 +22,11 @@ def get_var_name(frame):
             name_index = int(code.co_code[index+1])
             return code.co_cellvars[name_index]
         elif opc == "LOAD_GLOBAL" or opc == "LOAD_ATTR" or opc == "LOAD_FAST" or opc == "LOAD_DEREF":
-            index += 3
+            index += 2
         elif opc == "DUP_TOP":
-            index += 1
+            index += 2
         elif opc == "BUILD_LIST":
-            index += 3
+            index += 2
         else:
             return None
 

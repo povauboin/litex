@@ -147,6 +147,8 @@ class XilinxVivadoToolchain:
 
         if not isinstance(fragment, _Fragment):
             fragment = fragment.get_fragment()
+        if toolchain_path is None:
+            toolchain_path = "/opt/Xilinx/Vivado"
         platform.finalize(fragment)
         self._convert_clocks(platform)
         v_output = platform.get_verilog(fragment, name=build_name, **kwargs)

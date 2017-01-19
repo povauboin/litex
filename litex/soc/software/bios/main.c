@@ -305,6 +305,7 @@ static void help(void)
 	puts("mw         - write address space");
 	puts("mc         - copy address space");
 	puts("crc        - compute CRC32 of a part of the address space");
+	puts("ident      - display identifier");
 #ifdef __lm32__
 	puts("rcsr       - read processor CSR");
 	puts("wcsr       - write processor CSR");
@@ -319,7 +320,6 @@ static void help(void)
 #ifdef ROM_BOOT_ADDRESS
 	puts("romboot    - boot from embedded rom");
 #endif
-	puts("revision   - display revision");
 #ifdef CSR_SDRAM_BASE
 	puts("memtest    - run a memory test");
 #endif
@@ -458,76 +458,15 @@ static void readstr(char *s, int size)
 	}
 }
 
-static int test_user_abort(void)
-{
-	char c;
-
-	printf("Automatic boot in 2 seconds...\n");
-	printf("Q/ESC: abort boot\n");
-#ifdef FLASH_BOOT_ADDRESS
-	printf("F:     boot from flash\n");
-#endif
-	printf("S:     boot from serial\n");
-#ifdef CSR_ETHMAC_BASE
-	printf("N:     boot from network\n");
-#endif
-#ifdef ROM_BOOT_ADDRESS
-	printf("R:     boot from embedded ROM\n");
-#endif
-	timer0_en_write(0);
-	timer0_reload_write(0);
-#ifndef TEST_USER_ABORT_DELAY
-	timer0_load_write(SYSTEM_CLOCK_FREQUENCY*2);
-#else
-	timer0_load_write(TEST_USER_ABORT_DELAY);
-#endif
-	timer0_en_write(1);
-	timer0_update_value_write(1);
-	while(timer0_value_read()) {
-		if(readchar_nonblock()) {
-			c = readchar();
-			if((c == 'Q')||(c == 'q')||(c == '\e')) {
-				puts("Aborted");
-				return 0;
-			}
-#ifdef FLASH_BOOT_ADDRESS
-			if((c == 'F')||(c == 'f')) {
-				flashboot();
-				return 0;
-			}
-#endif
-			if((c == 'S')||(c == 's')) {
-				serialboot();
-				return 0;
-			}
-#ifdef CSR_ETHMAC_BASE
-			if((c == 'N')||(c == 'n')) {
-				netboot();
-				return 0;
-			}
-#endif
-#ifdef ROM_BOOT_ADDRESS
-			if((c == 'R')||(c == 'r')) {
-				romboot();
-				return 0;
-			}
-#endif
-		}
-		timer0_update_value_write(1);
-	}
-	return 1;
-}
-
 static void boot_sequence(void)
 {
-	if(test_user_abort()) {
+	if(serialboot()) {
 #ifdef FLASH_BOOT_ADDRESS
 		flashboot();
 #endif
 #ifdef ROM_BOOT_ADDRESS
 		romboot();
 #endif
-		serialboot();
 #ifdef CSR_ETHMAC_BASE
 #ifdef CSR_ETHPHY_MODE_DETECTION_MODE_ADDR
 		eth_mode();
@@ -557,10 +496,9 @@ int main(int i, char **c)
 	printf("(unknown)\n");
 #endif
 	puts(
-	"(c) Copyright 2012-2016 Enjoy-Digital\n"
-	"(c) Copyright 2007-2015 M-Labs Limited\n"
+	"(c) Copyright 2012-2017 Enjoy-Digital\n"
+	"(c) Copyright 2007-2017 M-Labs Limited\n"
 	"Built "__DATE__" "__TIME__"\n");
-
 	crcbios();
 #ifdef CSR_ETHMAC_BASE
 	eth_init();

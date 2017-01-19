@@ -154,7 +154,10 @@ class LiteXTerm:
         length = len(data)
         start = time.time()
         while len(data):
-            print("{}%\r".format(100*position//length), end="")
+            sys.stdout.write("|{}>{}| {}%\r".format('=' * (20*position//length),
+                                                    ' ' * (20-20*position//length),
+                                                    100*position//length))
+            sys.stdout.flush()
             frame = SFLFrame()
             frame_data = data[:251]
             frame.cmd = sfl_cmd_load
@@ -211,7 +214,7 @@ class LiteXTerm:
             while self.reader_alive:
                 c = self.port.read()
                 if c == b"\r":
-                    sys.stdout.write(b"\n")
+                    sys.stdout.buffer.write(b"\n")
                 else:
                 	sys.stdout.buffer.write(c)
                 sys.stdout.flush()

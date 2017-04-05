@@ -159,3 +159,23 @@ def get_csr_csv(csr_regions=None, constants=None, memory_regions=None):
             r += "memory_region,{},0x{:08x},{:d},\n".format(name.lower(), origin, length)
 
     return r
+
+def get_csr_python(csr_regions=None, constants=None, memory_regions=None):
+    r = ""
+
+    if csr_regions is not None:
+        for name, origin, busword, obj in csr_regions:
+            r += "ADDR_{} = 0x{:08x}\n".format(name.upper(), origin)
+
+        for name, origin, busword, obj in csr_regions:
+            if not isinstance(obj, Memory):
+                for csr in obj:
+                    nr = (csr.size + busword - 1)//busword
+                    r += "ADDR_{}_{} = 0x{:08x}\n".format(name.upper(), csr.name.upper(), origin)
+                    origin += 4*nr
+
+    if memory_regions is not None:
+        for name, origin, length in memory_regions:
+            r += "ADDR_{} = 0x{:08x}\n".format(name.upper(), origin)
+
+    return r

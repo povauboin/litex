@@ -111,6 +111,9 @@ class Builder:
         write_to_file(
             self.csr_csv,
             cpu_interface.get_csr_csv(csr_regions, constants, memory_regions))
+        write_to_file(
+            os.path.splitext(self.csr_csv)[0] + '.py',
+            cpu_interface.get_csr_python(csr_regions, constants, memory_regions))
 
     def _prepare_software(self):
         for name, src_dir in self.software_packages:
